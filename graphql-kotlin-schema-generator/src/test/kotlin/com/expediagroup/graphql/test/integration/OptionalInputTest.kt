@@ -44,7 +44,9 @@ class OptionalInputTest {
             Arguments.of("{ inputWithOptionalScalarValues(input: { required: \"ABC\" optional: 1 }) }", "argument scalar value: 1"),
             Arguments.of("{ inputWithOptionalValues(input: { required: \"ABC\" }) }", "argument with optional object was not specified"),
             Arguments.of("{ inputWithOptionalValues(input: { required: \"ABC\" optional: null }) }", "argument object value: null"),
-            Arguments.of("{ inputWithOptionalValues(input: { required: \"ABC\" optional: { id: 1, name: \"XYZ\" } }) }", "argument object value: SimpleArgument(id=1, name=XYZ)")
+            Arguments.of("{ inputWithOptionalValues(input: { required: \"ABC\" optional: { id: 1, name: \"XYZ\" } }) }", "argument object value: SimpleArgument(id=1, name=XYZ)"),
+            Arguments.of("{ inputWithNestedOptionalValues(input: {argumentOne: {nestedOptionalInput: \"ABC\"} } )}", "not all deeply nested args defined")
+
         )
     }
 }
@@ -55,13 +57,23 @@ data class SimpleArgument(
 )
 
 data class HasOptionalScalarArguments(
-    val required: String,
+    val req: OptionalInput<HasOptionalArguments>,
     val optional: OptionalInput<Int>
 )
 
 data class HasOptionalArguments(
-    val required: String,
+    val required: OptionalInput<String>,
     val optional: OptionalInput<SimpleArgument>
+)
+
+data class HasNestedOptionalArguments(
+    val argumentOne: OptionalInput<DeeplyNestedArguments>,
+    val argumentTwo: OptionalInput<Int>
+)
+
+data class DeeplyNestedArguments(
+    val nestedOptionalInput: OptionalInput<String>,
+    val anotherNestedOptionalInput: OptionalInput<SimpleArgument>
 )
 
 class OptionalInputQuery {
@@ -83,5 +95,14 @@ class OptionalInputQuery {
     fun inputWithOptionalValues(input: HasOptionalArguments): String = when (input.optional) {
         is OptionalInput.Undefined -> "argument with optional object was not specified"
         is OptionalInput.Defined<SimpleArgument> -> "argument object value: ${input.optional.value}"
+    }
+    fun inputWithNestedOptionalValues(input: HasNestedOptionalArguments): String {
+        return if (input.argumentOne is OptionalInput.Defined<DeeplyNestedArguments>
+            && input.argumentOne.value?.nestedOptionalInput is OptionalInput.Defined
+            && input.argumentOne.value?.anotherNestedOptionalInput is OptionalInput.Defined) {
+            "all deeply nested args defined"
+        } else {
+            "not all deeply nested args defined"
+        }
     }
 }
